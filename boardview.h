@@ -6,6 +6,8 @@
 #include <QImage>
 #include <QPoint>
 #include <QMouseEvent>
+#include <QSpinBox>
+#include <QPushButton>
 #include <thread>
 #include <future>
 #include <chesscontext.h>
@@ -14,7 +16,10 @@ class BoardView : public QWidget
 {
     Q_OBJECT
 private:
+    QWidget *myParent;
     ChessContext context;
+    ChessContext prevContext;
+    bool canUndo;
     QImage spriteSheet;
 
     int selectedX;
@@ -25,12 +30,13 @@ private:
     void mousePressEvent(QMouseEvent *event) override;
     QPoint getSprite(int i, int j);
 public:
-    explicit BoardView(QWidget *parent = nullptr);
+    explicit BoardView(QWidget *parent);
 
 
 signals:
 
 public slots:
+    void undoMove();
 };
 
 #endif // BOARDVIEW_H

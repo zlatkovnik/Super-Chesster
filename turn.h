@@ -14,6 +14,8 @@ public:
     Turn(int fx, int fy, int tx, int ty);
     bool operator== (const Turn &turn) const;
     Turn &operator= (const Turn &turn);
+    //bool operator < (const Turn &turn) const;
+    //bool operator > (const Turn &turn) const;
 };
 
 #endif // TURN_H

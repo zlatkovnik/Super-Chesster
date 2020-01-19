@@ -2,7 +2,6 @@
 
 Turn::Turn()
 {
-
 }
 
 Turn::Turn(const Turn &turn)
@@ -31,4 +30,14 @@ Turn &Turn::operator=(const Turn &turn)
     toY = turn.toY;
     return *this;
 }
+/*
+bool Turn::operator <(const Turn &turn) const
+{
+    return (value < turn.value);
+}
 
+bool Turn::operator >(const Turn &turn) const
+{
+    return (value > turn.value);
+}
+*/

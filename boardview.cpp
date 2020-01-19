@@ -4,9 +4,22 @@
 
 BoardView::BoardView(QWidget *parent) : QWidget(parent)
 {
+    myParent = parent;
     spriteSheet.load(":/chessFigures.png");
     selectedX = -1;
     selectedY = -1;
+    canUndo = false;
+}
+
+void BoardView::undoMove()
+{
+    if(!canUndo)
+        return;
+    context = prevContext;
+    canUndo = false;
+    QList<QPushButton*> btn = myParent->findChildren<QPushButton*>();
+    btn[0]->setEnabled(false);
+    update();
 }
 
 void BoardView::paintEvent(QPaintEvent *event)
@@ -48,9 +61,12 @@ void BoardView::paintEvent(QPaintEvent *event)
         y += tileSize;
     }
 }
-
 void BoardView::mousePressEvent(QMouseEvent *event)
 {
+    //TEMPORARY
+    QList<QPushButton*> btn = myParent->findChildren<QPushButton*>();
+    connect(btn[0], SIGNAL(clicked()), this, SLOT(undoMove()));
+    //THIS
     int tileSize = this->height() >> 3;
     int y = event->y() / tileSize;
     int x = event->x() / tileSize;
@@ -63,12 +79,18 @@ void BoardView::mousePressEvent(QMouseEvent *event)
         //If piece selected
         Turn turn(selectedX, selectedY, x, y);
         if(turns.contains(turn)){
+            prevContext = context;
             context.playTurn(selectedX, selectedY, x, y);
+            canUndo = true;
+            QList<QPushButton*> btn = myParent->findChildren<QPushButton*>();
+            btn[0]->setEnabled(true);
 
             //AI HERE
-            auto fu = std::async(std::launch::async, ChessContext::getBestTurn, context, 5);
+            QList<QSpinBox*> list = myParent->findChildren<QSpinBox*>();
+            int d = list[0]->value();
+            auto fu = std::async(std::launch::async, ChessContext::getBestTurn, context, d);
             Turn turn = fu.get();
-            //Turn turn = ChessContext::getBestTurn(context, 5);
+            //Turn turn = ChessContext::getBestTurn(context, d);
             context.playTurn(turn);
         }
         selectedX = -1;
@@ -77,11 +99,17 @@ void BoardView::mousePressEvent(QMouseEvent *event)
     else{
         //If piece not selected
         turns.clear();
+        if(context.tile(y, x) == '_')
+            return;
         selectedX = x;
         selectedY = y;
         if((context.isBlackTurn() && context.tile(y, x) <= 'Z') ||
-                (!context.isBlackTurn() && context.tile(y, x) > 'Z'))
-        turns.append(context.getTurns(x, y));
+                (!context.isBlackTurn() && context.tile(y, x) > 'Z')){
+            std::vector<Turn> *tmp = context.getTurns(x, y);
+            turns.reserve(static_cast<int>(tmp->size()));
+            std::copy(tmp->begin(), tmp->end(), std::back_inserter(turns));
+            delete tmp;
+        }
     }
     update();
 }

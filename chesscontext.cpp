@@ -24,7 +24,7 @@ ChessContext::ChessContext()
     }
 }
 
-ChessContext::ChessContext(ChessContext &cc)
+ChessContext::ChessContext(const ChessContext &cc)
 {
     blackTurn = cc.blackTurn;
     for(int i = 0; i < 8; i++)
@@ -56,7 +56,7 @@ void ChessContext::playTurn(Turn turn)
     blackTurn = !blackTurn;
 }
 
-QList<Turn> ChessContext::getTurns(int x, int y)
+std::vector<Turn> *ChessContext::getTurns(int x, int y)
 {
     char f = board[y][x];
     if(blackTurn){
@@ -70,7 +70,7 @@ QList<Turn> ChessContext::getTurns(int x, int y)
             return getBishopTurns(x, y);
         else if(f == 'Q')
             return getQueenTurns(x, y);
-        else
+        else if(f == 'K')
             return getKingTurns(x, y);
     }
     else{
@@ -84,45 +84,55 @@ QList<Turn> ChessContext::getTurns(int x, int y)
             return getBishopTurns(x, y);
         else if(f == 'q')
             return getQueenTurns(x, y);
-        else
+        else if(f == 'k')
             return getKingTurns(x, y);
     }
+    return nullptr;
 }
 
 
-QList<Turn> ChessContext::getAllTurns()
+std::vector<Turn> *ChessContext::getAllTurns()
 {
-    QList<Turn> turns;
+    std::vector<Turn> *turns = new std::vector<Turn>();
     for(int i = 0; i < 8; i++)
         for(int j = 0; j < 8; j++)
             if(board[i][j] != '_'){
-                if(blackTurn && board[i][j] < 'Z')
-                    turns.append(getTurns(j, i));
-                else if(!blackTurn && board[i][j] > 'Z')
-                    turns.append(getTurns(j, i));
+                if((blackTurn && board[i][j] < 'Z')){
+                    std::vector<Turn> *tmp = getTurns(j, i);
+                    turns->reserve(tmp->size() + turns->size());
+                    turns->insert(turns->end(), tmp->begin(), tmp->end());
+                    delete tmp;
+                }
+                else if(!blackTurn && board[i][j] > 'Z'){
+                    std::vector<Turn> *tmp = getTurns(j, i);
+                    turns->reserve(tmp->size() + turns->size());
+                    turns->insert(turns->end(), tmp->begin(), tmp->end());
+                    delete tmp;
+                }
             }
     return turns;
 }
 
-QList<Turn> ChessContext::getPawnTurns(int x, int y)
+std::vector<Turn> *ChessContext::getPawnTurns(int x, int y)
 {
-    QList<Turn> turns;
+    std::vector<Turn> *turns = new std::vector<Turn>();
+    turns->reserve(16);
     if(!blackTurn){
         int posY = y - 1;
         int posX = x - 1;
         if (board[posY][x] == '_' && posY >= 0) {
             Turn turn(x, y, x, posY);
-            turns.append(turn);
-        }
-        if(y == 6 && board[posY - 1][x] == '_') {
-            Turn turn(x, y, x, posY - 1);
-            turns.append(turn);
+            turns->push_back(turn);
+            if(y == 6 && board[posY - 1][x] == '_') {
+                Turn turn(x, y, x, posY - 1);
+                turns->push_back(turn);
+            }
         }
         if (posX >= 0 && posY >= 0) {
             char f = board[posY][posX];
             if (f > 'A' && f < 'Z'){
                 Turn turn(x, y, posX, posY);
-                turns.append(turn);
+                turns->push_back(turn);
             }
         }
         posX = x + 1;
@@ -130,7 +140,7 @@ QList<Turn> ChessContext::getPawnTurns(int x, int y)
             char f = board[posY][posX];
             if (f > 'A' && f < 'Z') {
                 Turn turn(x, y, posX, posY);
-                turns.append(turn);
+                turns->push_back(turn);
             }
         }
     }
@@ -139,17 +149,17 @@ QList<Turn> ChessContext::getPawnTurns(int x, int y)
         int posX = x - 1;
         if (board[posY][x] == '_' && posY < 8) {
             Turn turn(x, y, x, posY);
-            turns.append(turn);
-        }
-        if(y == 1 && board[posY + 1][x] == '_') {
-            Turn turn(x, y, x, posY + 1);
-            turns.append(turn);
+            turns->push_back(turn);
+            if(y == 1 && board[posY + 1][x] == '_') {
+                Turn turn(x, y, x, posY + 1);
+                turns->push_back(turn);
+            }
         }
         if (posX >= 0 && posY < 8) {
             char f = board[posY][posX];
             if (f > 'a' && f < 'z'){
                 Turn turn(x, y, posX, posY);
-                turns.append(turn);
+                turns->push_back(turn);
             }
         }
         posX = x + 1;
@@ -157,16 +167,17 @@ QList<Turn> ChessContext::getPawnTurns(int x, int y)
             char f = board[posY][posX];
             if (f > 'a' && f < 'z') {
                 Turn turn(x, y, posX, posY);
-                turns.append(turn);
+                turns->push_back(turn);
             }
         }
     }
     return turns;
 }
 
-QList<Turn> ChessContext::getRookTurns(int x, int y)
+std::vector<Turn> *ChessContext::getRookTurns(int x, int y)
 {
-    QList<Turn> turns;
+    std::vector<Turn> *turns = new std::vector<Turn>();
+    turns->reserve(14);
     int j = x - 1;
     int i = y;
     bool hit = false;
@@ -175,15 +186,15 @@ QList<Turn> ChessContext::getRookTurns(int x, int y)
     {
         char c = board[i][j];
         if (c == '_')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
         else if (blackTurn && c >= 'a' && c <= 'z')
         {
-            {Turn turn(x, y, j, i); turns.append(turn);}
+            {Turn turn(x, y, j, i); turns->push_back(turn);}
             hit = true;
         }
         else if(!blackTurn && c >= 'A' && c <= 'Z')
         {
-            {Turn turn(x, y, j, i); turns.append(turn);}
+            {Turn turn(x, y, j, i); turns->push_back(turn);}
             hit = true;
         }
         else
@@ -198,15 +209,15 @@ QList<Turn> ChessContext::getRookTurns(int x, int y)
     {
         char c = board[i][j];
         if (c == '_')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
         else if (blackTurn && c >= 'a' && c <= 'z')
         {
-            {Turn turn(x, y, j, i); turns.append(turn);}
+            {Turn turn(x, y, j, i); turns->push_back(turn);}
             hit = true;
         }
         else if (!blackTurn && c >= 'A' && c <= 'Z')
         {
-            {Turn turn(x, y, j, i); turns.append(turn);}
+            {Turn turn(x, y, j, i); turns->push_back(turn);}
             hit = true;
         }
         else
@@ -221,15 +232,15 @@ QList<Turn> ChessContext::getRookTurns(int x, int y)
     {
         char c = board[i][j];
         if (c == '_')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
         else if (blackTurn && c >= 'a' && c <= 'z')
         {
-            {Turn turn(x, y, j, i); turns.append(turn);}
+            {Turn turn(x, y, j, i); turns->push_back(turn);}
             hit = true;
         }
         else if (!blackTurn && c >= 'A' && c <= 'Z')
         {
-            {Turn turn(x, y, j, i); turns.append(turn);}
+            {Turn turn(x, y, j, i); turns->push_back(turn);}
             hit = true;
         }
         else
@@ -244,15 +255,15 @@ QList<Turn> ChessContext::getRookTurns(int x, int y)
     {
         char c = board[i][j];
         if (c == '_')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
         else if (blackTurn && c >= 'a' && c <= 'z')
         {
-            {Turn turn(x, y, j, i); turns.append(turn);}
+            {Turn turn(x, y, j, i); turns->push_back(turn);}
             hit = true;
         }
         else if (!blackTurn && c >= 'A' && c <= 'Z')
         {
-            {Turn turn(x, y, j, i); turns.append(turn);}
+            {Turn turn(x, y, j, i); turns->push_back(turn);}
             hit = true;
         }
         else
@@ -262,9 +273,10 @@ QList<Turn> ChessContext::getRookTurns(int x, int y)
     return turns;
 }
 
-QList<Turn> ChessContext::getKnightTurns(int x, int y)
+std::vector<Turn> *ChessContext::getKnightTurns(int x, int y)
 {
-    QList<Turn> turns;
+    std::vector<Turn> *turns = new std::vector<Turn>();
+    turns->reserve(8);
     char f;
     int i = y - 1;
     int j = x - 2;
@@ -272,22 +284,22 @@ QList<Turn> ChessContext::getKnightTurns(int x, int y)
     {
         f = board[i][j];
         if (f == '_')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
         else if (blackTurn && f >= 'a' && f <= 'z')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
         else if (!blackTurn && f >= 'A' && f <= 'Z')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
     }
     i = y + 1;
     if (i < 8 && j >= 0)
     {
         f = board[i][j];
         if (f == '_')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
         else if (blackTurn && f >= 'a' && f <= 'z')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
         else if (!blackTurn && f >= 'A' && f <= 'Z')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
     }
     j = x - 1;
     i = y - 2;
@@ -295,22 +307,22 @@ QList<Turn> ChessContext::getKnightTurns(int x, int y)
     {
         f = board[i][j];
         if (f == '_')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
         else if (blackTurn && f >= 'a' && f <= 'z')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
         else if (!blackTurn && f >= 'A' && f <= 'Z')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
     }
     j = x + 1;
     if (i >= 0 && j < 8)
     {
         f = board[i][j];
         if (f == '_')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
         else if (blackTurn && f >= 'a' && f <= 'z')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
         else if (!blackTurn && f >= 'A' && f <= 'Z')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
     }
     i = y - 1;
     j = x + 2;
@@ -318,22 +330,22 @@ QList<Turn> ChessContext::getKnightTurns(int x, int y)
     {
         f = board[i][j];
         if (f == '_')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
         else if (blackTurn && f >= 'a' && f <= 'z')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
         else if (!blackTurn && f >= 'A' && f <= 'Z')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
     }
     i = y + 1;
     if (i < 8 && j < 8)
     {
         f = board[i][j];
         if (f == '_')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
         else if (blackTurn && f >= 'a' && f <= 'z')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
         else if (!blackTurn && f >= 'A' && f <= 'Z')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
     }
     i = y + 2;
     j = x - 1;
@@ -341,29 +353,30 @@ QList<Turn> ChessContext::getKnightTurns(int x, int y)
     {
         f = board[i][j];
         if (f == '_')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
         else if (blackTurn && f >= 'a' && f <= 'z')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
         else if (!blackTurn && f >= 'A' && f <= 'Z')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
     }
     j = x + 1;
     if (i < 8 && j < 8)
     {
         f = board[i][j];
         if (f == '_')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
         else if (blackTurn && f >= 'a' && f <= 'z')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
         else if (!blackTurn && f >= 'A' && f <= 'Z')
-        {Turn turn(x, y, j, i); turns.append(turn);}
+        {Turn turn(x, y, j, i); turns->push_back(turn);}
     }
     return turns;
 }
 
-QList<Turn> ChessContext::getBishopTurns(int x, int y)
+std::vector<Turn> *ChessContext::getBishopTurns(int x, int y)
 {
-    QList<Turn> turns;
+    std::vector<Turn> *turns = new std::vector<Turn>();
+    turns->reserve(14);
     int j = x - 1;
     int i = y - 1;
     bool hit = false;
@@ -373,16 +386,16 @@ QList<Turn> ChessContext::getBishopTurns(int x, int y)
         char c = board[i][j];
         if (c == '_'){
             Turn turn(x, y, j, i);
-            turns.append(turn);
+            turns->push_back(turn);
         }
         else if (blackTurn && c >= 'a' && c <= 'z') {
             Turn turn(x, y, j, i);
-            turns.append(turn);
+            turns->push_back(turn);
             hit = true;
         }
         else if (!blackTurn && c >= 'A' && c <= 'Z') {
             Turn turn(x, y, j, i);
-            turns.append(turn);
+            turns->push_back(turn);
             hit = true;
         }
         else
@@ -399,16 +412,16 @@ QList<Turn> ChessContext::getBishopTurns(int x, int y)
         char c = board[i][j];
         if (c == '_') {
             Turn turn(x, y, j, i);
-            turns.append(turn);
+            turns->push_back(turn);
         }
         else if (blackTurn && c >= 'a' && c <= 'z') {
             Turn turn(x, y, j, i);
-            turns.append(turn);
+            turns->push_back(turn);
             hit = true;
         }
         else if (!blackTurn && c >= 'A' && c <= 'Z') {
             Turn turn(x, y, j, i);
-            turns.append(turn);
+            turns->push_back(turn);
             hit = true;
         }
         else
@@ -425,16 +438,16 @@ QList<Turn> ChessContext::getBishopTurns(int x, int y)
         char c = board[i][j];
         if (c == '_'){
             Turn turn(x, y, j, i);
-            turns.append(turn);
+            turns->push_back(turn);
         }
         else if (blackTurn && c >= 'a' && c <= 'z') {
             Turn turn(x, y, j, i);
-            turns.append(turn);
+            turns->push_back(turn);
             hit = true;
         }
         else if (!blackTurn && c >= 'A' && c <= 'Z') {
             Turn turn(x, y, j, i);
-            turns.append(turn);
+            turns->push_back(turn);
             hit = true;
         }
         else
@@ -451,16 +464,16 @@ QList<Turn> ChessContext::getBishopTurns(int x, int y)
         char c = board[i][j];
         if (c == '_') {
             Turn turn(x, y, j, i);
-            turns.append(turn);
+            turns->push_back(turn);
         }
         else if (blackTurn && c >= 'a' && c <= 'z') {
             Turn turn(x, y, j, i);
-            turns.append(turn);
+            turns->push_back(turn);
             hit = true;
         }
         else if (!blackTurn && c >= 'A' && c <= 'Z') {
             Turn turn(x, y, j, i);
-            turns.append(turn);
+            turns->push_back(turn);
             hit = true;
         }
         else
@@ -471,16 +484,20 @@ QList<Turn> ChessContext::getBishopTurns(int x, int y)
     return turns;
 }
 
-QList<Turn> ChessContext::getQueenTurns(int x, int y)
+std::vector<Turn> *ChessContext::getQueenTurns(int x, int y)
 {
-    QList<Turn> turns(getRookTurns(x, y));
-    turns.append(getBishopTurns(x, y));
+    std::vector<Turn> *turns = getRookTurns(x, y);
+    std::vector<Turn> *tmp = getBishopTurns(x, y);
+    turns->reserve(turns->size() + tmp->size());
+    turns->insert(turns->end(), tmp->begin(), tmp->end());
+    delete tmp;
     return turns;
 }
 
-QList<Turn> ChessContext::getKingTurns(int x, int y)
+std::vector<Turn> *ChessContext::getKingTurns(int x, int y)
 {
-    QList<Turn> turns;
+    std::vector<Turn> *turns = new std::vector<Turn>();
+    turns->reserve(8);
     for(int i = y - 1; i <= y + 1; i++)
     {
         for(int j = x - 1; j <= x + 1; j++)
@@ -490,16 +507,16 @@ QList<Turn> ChessContext::getKingTurns(int x, int y)
                 char c = board[i][j];
                 if (c == '_'){
                     Turn turn(x, y, j, i);
-                    turns.append(turn);
+                    turns->push_back(turn);
                 }
                 else if(blackTurn && c >= 'a' && c <= 'z'){
                     Turn turn(x, y, j, i);
-                    turns.append(turn);
+                    turns->push_back(turn);
                 }
 
                 else if(!blackTurn && c >= 'A' && c <= 'Z'){
                     Turn turn(x, y, j, i);
-                    turns.append(turn);
+                    turns->push_back(turn);
                 }
             }
         }
@@ -507,53 +524,84 @@ QList<Turn> ChessContext::getKingTurns(int x, int y)
     return turns;
 }
 
+
+
 Turn ChessContext::getBestTurn(ChessContext cc, int depth)
 {
     int alpha = -214748364, beta = 214748364;
-    QList<Turn> turns(cc.getAllTurns());
+    //QList<Turn> turns(cc.getAllTurns());
+    std::vector<Turn> *turns = cc.getAllTurns();
     Turn maxTurn;
-    for(int i = 0; i < turns.count(); i++)      //TODO
+    for(unsigned long long i = 0; i < turns->size(); i++)
     {
         ChessContext newContext(cc);
-        newContext.playTurn(turns[i]);
-
+        newContext.playTurn(turns->at(i));
         int val = -AlphaBeta(newContext, depth - 1, -beta, -alpha);
         if(val > alpha)
         {
-            maxTurn.fromX = turns[i].fromX;
-            maxTurn.fromY = turns[i].fromY;
-            maxTurn.toX = turns[i].toX;
-            maxTurn.toY = turns[i].toY;
+            maxTurn = turns->at(i);
             alpha = val;
         }
         if (alpha >= beta)
             break;
     }
+    delete turns;
     return maxTurn;
 }
 
+
+/*
+int ChessContext::pvs(ChessContext cc, int depth, int alpha, int beta)
+{
+    if(depth <= 0)
+        return cc.EvaluateBoard();
+    QList<Turn> turns(cc.getAllTurns());
+    if(turns.count() == 0)
+        return cc.EvaluateBoard();
+    QList<ChessContext> contexts;
+    for(int i = 0; i < turns.count(); i++){
+        ChessContext newContext(cc);
+        newContext.playTurn(turns[i]);
+        contexts.append(newContext);
+        turns[i].value = newContext.EvaluateBoard();
+    }
+    std::sort(turns.begin(), turns.end(), std::greater<Turn>());
+    for(int i = 0; i < turns.count(); i++)
+    {
+        int val;
+        if(i == 0)
+            val = -pvs(contexts[i], depth - 1, -beta, -alpha);
+        else{
+            val = -pvs(contexts[i], depth - 1, -alpha - 1, -alpha);
+            if(alpha < val && val < beta)
+                val = -pvs(contexts[i], depth - 1, -beta, -val);
+        }
+        if(val > alpha)
+            alpha = val;
+        if (alpha >= beta)
+            break;
+    }
+    return alpha;
+}
+*/
 int ChessContext::AlphaBeta(ChessContext cc, int depth, int alpha, int beta)
 {
     if(depth <= 0)
-    {
         return cc.EvaluateBoard();
-    }
-    QList<Turn> turns(cc.getAllTurns());
-    if(turns.count() == 0)
-    {
+    std::vector<Turn> *turns = cc.getAllTurns();
+    if(turns->size() == 0)
         return cc.EvaluateBoard();
-    }
-    Turn turnToReturn(0, 0, 0, 0);
-    for(int i = 0; i < turns.count(); i++)
+    for(unsigned long long i = 0; i < turns->size(); i++)
     {
         ChessContext newContext(cc);
-        newContext.playTurn(turns[i]);
+        newContext.playTurn(turns->at(i));
         int val = -AlphaBeta(newContext, depth - 1, -beta, -alpha);
         if(val > alpha)
             alpha = val;
         if (alpha >= beta)
             break;
     }
+    delete turns;
     return alpha;
 }
 
@@ -570,10 +618,14 @@ int ChessContext::EvaluateBoard()
                 acc += 100;
             else if(f == 'p')
                 acc -= 100;
-            else if(f == 'N')
+            else if(f == 'N'){
                 acc += 300;
-            else if(f == 'n')
+                acc += blackKnightValue[i][j];
+            }
+            else if(f == 'n'){
                 acc -= 300;
+                acc -= whiteKnightValue[i][j];
+            }
             else if(f == 'B')
                 acc += 325;
             else if(f == 'b')
